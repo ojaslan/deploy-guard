@@ -1,0 +1,7 @@
+FROM python:3.11-slim
+WORKDIR /code
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+RUN pip install --no-cache-dir streamlit pandas requests
+COPY app/dashboard.py ./app/dashboard.py
+EXPOSE 8501
+CMD ["streamlit", "run", "app/dashboard.py", "--server.port", "8501", "--server.address", "0.0.0.0", "--server.headless", "true", "--server.enableCORS", "false", "--server.enableXsrfProtection", "false"]

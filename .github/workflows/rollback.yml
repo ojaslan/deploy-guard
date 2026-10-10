@@ -1,0 +1,48 @@
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Which environment
+        type: choice
+        options: [backend, frontend]
+        required: true
+      version_label:
+        description: Version to roll back to. Leave empty to only LIST versions.
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: ap-south-1
+  BACKEND_APP: deployguard-backend
+  BACKEND_ENV: deployguard-backend-prod
+  FRONTEND_APP: deployguard-frontend
+  FRONTEND_ENV: deployguard-frontend-prod
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: List or roll back
+        env:
+          TARGET: ${{ inputs.target }}
+          VERSION_LABEL: ${{ inputs.version_label }}
+        run: |
+          if [ "$TARGET" = "backend" ]; then
+            bash scripts/rollback_eb.sh "$BACKEND_APP" "$BACKEND_ENV" /health "$VERSION_LABEL"
+          else
+            bash scripts/rollback_eb.sh "$FRONTEND_APP" "$FRONTEND_ENV" /_stcore/health "$VERSION_LABEL"
+          fi
