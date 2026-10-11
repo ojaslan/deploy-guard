@@ -1,21 +1,19 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" font-family="Arial, sans-serif">
-<rect width="960" height="420" fill="#0b1220"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 360" font-family="Arial, sans-serif">
+<rect width="900" height="360" fill="#0b1220"/>
 <defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#64a8ff"/></marker></defs>
 <g fill="#14223a" stroke="#355578" stroke-width="1.5">
-<rect x="30" y="60" width="170" height="70" rx="10"/><rect x="30" y="200" width="170" height="70" rx="10"/>
-<rect x="290" y="130" width="190" height="90" rx="10"/><rect x="290" y="270" width="190" height="90" rx="10"/>
-<rect x="580" y="130" width="170" height="70" rx="10"/><rect x="580" y="230" width="170" height="70" rx="10"/>
-<rect x="580" y="30" width="170" height="70" rx="10"/><rect x="800" y="130" width="130" height="70" rx="10"/></g>
+<rect x="30" y="50" width="160" height="70" rx="10"/><rect x="30" y="200" width="160" height="70" rx="10"/>
+<rect x="290" y="110" width="250" height="110" rx="10"/>
+<rect x="640" y="40" width="170" height="70" rx="10"/><rect x="640" y="140" width="170" height="70" rx="10"/>
+<rect x="640" y="240" width="170" height="70" rx="10"/><rect x="290" y="270" width="250" height="60" rx="10"/></g>
 <g fill="#edf4ff" font-size="14" text-anchor="middle">
-<text x="115" y="90">GitHub</text><text x="115" y="110" font-size="12" fill="#9aabc4">push to main</text>
-<text x="115" y="230">GitHub Actions</text><text x="115" y="250" font-size="12" fill="#9aabc4">test, docker, deploy</text>
-<text x="385" y="165">EB: frontend</text><text x="385" y="185" font-size="12" fill="#9aabc4">Streamlit (Docker)</text>
-<text x="385" y="305">EB: backend</text><text x="385" y="325" font-size="12" fill="#9aabc4">FastAPI (Docker)</text>
-<text x="665" y="160">Groq LLM</text><text x="665" y="260">CloudWatch</text>
-<text x="665" y="60">Users</text><text x="865" y="160">History</text><text x="865" y="180" font-size="12" fill="#9aabc4">JSON (dev)</text></g>
+<text x="110" y="82">GitHub</text><text x="110" y="102" font-size="12" fill="#9aabc4">push to main</text>
+<text x="110" y="232">GitHub Actions</text><text x="110" y="252" font-size="12" fill="#9aabc4">test, docker, deploy</text>
+<text x="415" y="152">Elastic Beanstalk (Docker)</text><text x="415" y="175" font-size="12" fill="#9aabc4">FastAPI + HTML dashboard</text><text x="415" y="195" font-size="12" fill="#9aabc4">risk engine, history</text>
+<text x="725" y="72">Users (browser)</text><text x="725" y="172">Groq LLM</text><text x="725" y="272">CloudWatch</text>
+<text x="415" y="297">Rollback = Actions workflow</text></g>
 <g stroke="#64a8ff" stroke-width="2" fill="none" marker-end="url(#a)">
-<path d="M115 130 L115 198"/><path d="M200 220 L288 180"/><path d="M200 245 L288 305"/>
-<path d="M385 220 L385 268"/><path d="M480 300 L578 170"/><path d="M480 320 L578 265"/>
-<path d="M665 100 L420 128"/><path d="M750 165 L798 165"/></g>
-<text x="480" y="405" fill="#9aabc4" font-size="12" text-anchor="middle">Deploys use GitHub OIDC (no stored AWS keys). Rollback = Actions workflow.</text>
+<path d="M110 120 L110 198"/><path d="M190 235 L288 190"/><path d="M638 80 L542 135"/>
+<path d="M540 165 L638 172"/><path d="M540 195 L638 262"/><path d="M190 255 L288 297"/></g>
+<text x="450" y="345" fill="#9aabc4" font-size="12" text-anchor="middle">Deploys use GitHub OIDC, no stored AWS keys</text>
 </svg>

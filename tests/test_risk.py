@@ -53,3 +53,11 @@ def test_health_and_simulate():
     assert client.get("/health").status_code == 200
     for s in ("normal", "error", "slow"):
         assert client.get("/simulate", params={"scenario": s}).json()["simulated"] is True
+
+
+def test_dashboard_page_served():
+    for path in ("/", "/dashboard"):
+        r = client.get(path)
+        assert r.status_code == 200
+        assert "text/html" in r.headers["content-type"]
+        assert "DeployGuard" in r.text and "Run AI Diagnosis" in r.text

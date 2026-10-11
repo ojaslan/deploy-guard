@@ -15,10 +15,8 @@ concurrency:
 
 env:
   AWS_REGION: ap-south-1
-  BACKEND_APP: deployguard-backend
-  BACKEND_ENV: deployguard-backend-prod
-  FRONTEND_APP: deployguard-frontend
-  FRONTEND_ENV: deployguard-frontend-prod
+  EB_APP: deployguard
+  EB_ENV: deployguard-prod
 
 jobs:
   test:
@@ -36,26 +34,19 @@ jobs:
     needs: test
     steps:
       - uses: actions/checkout@v4
-      - name: Build backend image
+      - name: Build image
         run: docker build -t deployguard .
-      - name: Build dashboard image
-        run: docker build -f Dockerfile.dashboard -t deployguard-dashboard .
-      - name: Backend container health check
+      - name: Container health check (API and dashboard page)
         run: |
           docker run -d --name dg -p 8000:8000 deployguard
           for _ in $(seq 1 20); do curl -fs localhost:8000/health && break; sleep 2; done
           curl -fs localhost:8000/health || { docker logs dg; exit 1; }
+          curl -fs localhost:8000/ | grep -q "DeployGuard" || { echo "dashboard page missing"; docker logs dg; exit 1; }
           docker rm -f dg
-      - name: Dashboard container health check
-        run: |
-          docker run -d --name dgf -p 8501:8501 deployguard-dashboard
-          for _ in $(seq 1 30); do curl -fs localhost:8501/_stcore/health && break; sleep 2; done
-          curl -fs localhost:8501/_stcore/health || { docker logs dgf; exit 1; }
-          docker rm -f dgf
 
-  # Deploy jobs run only after the repo variable AWS_ROLE_ARN is set (see runbook).
-  # They use the GitHub Environment "production" (add required reviewers there for an approval gate).
-  deploy-backend:
+  # Runs only after the repo variable AWS_ROLE_ARN is set (see runbook).
+  # Uses the GitHub Environment "production" (add required reviewers there for an approval gate).
+  deploy:
     runs-on: ubuntu-latest
     needs: [test, docker-build]
     if: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.AWS_ROLE_ARN != '' }}
@@ -69,32 +60,10 @@ jobs:
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
-      - name: Assemble backend bundle
+      - name: Assemble bundle
         run: |
-          mkdir -p bundle/app
+          mkdir -p bundle
           cp Dockerfile requirements.txt bundle/
-          cp app/__init__.py app/main.py app/risk.py app/history.py app/diagnosis.py app/cloudwatch.py app/rollback.py bundle/app/
-      - name: Deploy backend
-        run: bash scripts/deploy_eb.sh "$BACKEND_APP" "$BACKEND_ENV" bundle /health
-
-  deploy-frontend:
-    runs-on: ubuntu-latest
-    needs: [deploy-backend]
-    environment: production
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-      - name: Assemble frontend bundle
-        run: |
-          mkdir -p bundle/app
-          cp Dockerfile.dashboard bundle/Dockerfile
-          cp app/dashboard.py bundle/app/dashboard.py
-          cp -r deploy/frontend/.platform bundle/.platform
-      - name: Deploy frontend
-        run: bash scripts/deploy_eb.sh "$FRONTEND_APP" "$FRONTEND_ENV" bundle /_stcore/health
+          cp -r app bundle/app
+      - name: Deploy to Elastic Beanstalk
+        run: bash scripts/deploy_eb.sh "$EB_APP" "$EB_ENV" bundle /health

@@ -1,8 +1,9 @@
 import random
 import time
+from pathlib import Path
 
 from fastapi import FastAPI, Query
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse
 
 from app.cloudwatch import router as cloudwatch_router
 from app.diagnosis import router as diagnosis_router
@@ -10,25 +11,27 @@ from app.history import load_history, save_analysis
 from app.risk import calculate_risk
 from app.rollback import router as rollback_router
 
-app = FastAPI(title="DeployGuard", version="1.0.0")
+app = FastAPI(title="DeployGuard", version="2.0.0")
 START = time.time()
+INDEX = Path(__file__).resolve().parent / "static" / "index.html"
 
 app.include_router(diagnosis_router)
 app.include_router(cloudwatch_router)
 app.include_router(rollback_router)
 
 
+def _page():
+    return FileResponse(INDEX, media_type="text/html", headers={"Cache-Control": "no-cache"})
+
+
 @app.get("/", include_in_schema=False)
 def root():
-    return RedirectResponse("/dashboard")
+    return _page()
 
 
-@app.get("/dashboard", response_class=HTMLResponse, include_in_schema=False)
+@app.get("/dashboard", include_in_schema=False)
 def dashboard():
-    return """<html><body style="font-family:sans-serif;background:#080d18;color:#edf4ff;padding:40px">
-<h1>DeployGuard API</h1>
-<p>Backend is running. Interactive docs: <a style="color:#64a8ff" href="/docs">/docs</a></p>
-<p>The full dashboard runs separately with Streamlit (port 8501).</p></body></html>"""
+    return _page()
 
 
 @app.get("/health")

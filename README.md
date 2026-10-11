@@ -10,19 +10,17 @@ Give it error rate, latency and health. A deterministic engine scores the releas
 | Part | Tech | File |
 |---|---|---|
 | Risk engine + API | FastAPI | `app/main.py`, `app/risk.py` |
+| Dashboard | single HTML page served by FastAPI | `app/static/index.html` |
 | AI diagnosis | Groq (`openai/gpt-oss-120b`, configurable) | `app/diagnosis.py` |
 | Live metrics | AWS CloudWatch (boto3) | `app/cloudwatch.py` |
-| Dashboard | Streamlit | `app/dashboard.py` |
 | History | local JSON (development storage only) | `app/history.py` |
-| Containers | Docker, docker-compose | `Dockerfile`, `Dockerfile.dashboard` |
+| Container | Docker | `Dockerfile`, `docker-compose.yml` |
 | CI/CD | GitHub Actions + OIDC | `.github/workflows/` |
 
 ## Deployment model
-Two Elastic Beanstalk Docker environments (single instance each):
-- `deployguard-backend-prod`: FastAPI container
-- `deployguard-frontend-prod`: Streamlit container (nginx override for WebSockets in `deploy/frontend/.platform`)
+One Elastic Beanstalk Docker environment (`deployguard-prod`) runs a single container. FastAPI serves both the API and the dashboard page, so there is one URL, one image and no CORS setup.
 
-Pipeline (`ci-cd.yml`): **test** -> **docker-build** (builds both images, health-checks both containers) -> **deploy-backend** -> **deploy-frontend**. Each deploy creates an immutable version labelled with the commit, waits for it to become healthy, and smoke-tests it. Deploy jobs use the GitHub Environment `production` (add required reviewers for an approval gate) and assume an AWS role through OIDC, so no AWS keys are stored in GitHub.
+Pipeline (`ci-cd.yml`): **test** -> **docker-build** (builds the image, health-checks `/health` and the dashboard page) -> **deploy** (creates an immutable version labelled with the commit, waits for it to become healthy, smoke-tests it). Deploy uses the GitHub Environment `production` (add required reviewers for an approval gate) and assumes an AWS role through OIDC, so no AWS keys are stored in GitHub.
 
 Rollback: **Actions -> Rollback** lists versions, then redeploys the one you choose.
 
@@ -32,8 +30,9 @@ Rollback: **Actions -> Rollback** lists versions, then redeploys the one you cho
 | Risk scoring, validation, history | Automated tests |
 | CloudWatch math, rollback API safety logic | Unit tests with mocked AWS |
 | Workflows and scripts | Linted (actionlint, shellcheck) |
-| Docker images build and pass health checks | Runs in CI on every push |
-| Elastic Beanstalk deploy via pipeline, WebSockets, live CloudWatch | Verify after setup (see runbook) |
+| Docker image builds and passes health checks | Runs in CI on every push |
+| Dashboard page logic | Exercised in jsdom against the real API (not yet checked in a real browser) |
+| Elastic Beanstalk deploy via pipeline, live CloudWatch | Verify after setup (see runbook) |
 
 ## Run locally
 ```
@@ -42,8 +41,8 @@ python -m venv .venv
 pip install -r requirements-dev.txt
 copy .env.example .env      # edit; never commit .env
 uvicorn app.main:app --reload
-streamlit run app/dashboard.py
 ```
+Open http://127.0.0.1:8000 (dashboard) and http://127.0.0.1:8000/docs (API).
 Or: `docker compose up --build`
 
 ## Tests
@@ -52,7 +51,7 @@ python -m pytest -q
 ```
 
 ## Known limitations
-- Single-instance environments over plain HTTP. HTTPS needs a custom domain + ACM certificate + load balancer.
+- Single-instance environment over plain HTTP. HTTPS needs a custom domain + ACM certificate + load balancer.
 - No login on the dashboard; `/diagnose` has a global rate limit.
 - History is a local JSON file and resets on redeploy.
 - Risk weights are simple heuristics. AI output is advisory only.
