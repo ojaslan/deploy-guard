@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DeployGuard | Command Center</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🛡️%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#080d18;--panel:#101827;--border:#243147;--muted:#91a0b8;--text:#edf4ff;--blue:#64a8ff;--green:#36d399;--red:#ff647c;--amber:#ffc46b}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:radial-gradient(ellipse at 85% 0%,#142746 0%,transparent 38%),var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;min-height:100vh}
+h1,h2,h3{font-family:'Space Grotesk','DM Sans',sans-serif;letter-spacing:-.5px;margin:0}
+.layout{display:grid;grid-template-columns:310px 1fr;min-height:100vh}
+aside{background:#0b1220;border-right:1px solid var(--border);padding:24px 20px;position:sticky;top:0;height:100vh;overflow:auto}
+main{padding:28px 34px 40px;max-width:1300px;width:100%}
+.brand{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700}
+.sub{color:var(--muted);font-size:11px;letter-spacing:2px;margin:4px 0 14px}
+.badge{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:600;padding:6px 12px;border-radius:20px}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.ok{background:#12382f;color:var(--green)}.ok .dot{background:var(--green)}
+.bad{background:#421f2b;color:var(--red)}.bad .dot{background:var(--red)}
+hr{border:0;border-top:1px solid var(--border);margin:20px 0}
+label{display:block;color:#b5c4dc;font-size:13px;margin:14px 0 6px}
+select,input[type=number]{width:100%;background:#121d2d;color:var(--text);border:1px solid var(--border);border-radius:9px;padding:10px;font:inherit}
+input[type=range]{width:100%;accent-color:#5b8cff}
+.rv{float:right;color:var(--blue);font-weight:600}
+button{font:inherit;cursor:pointer}
+.btn{width:100%;background:linear-gradient(100deg,#3478f6,#6559ef);color:#fff;border:0;border-radius:10px;padding:12px 16px;font-weight:700;margin-top:18px;transition:.2s}
+.btn:hover{box-shadow:0 0 24px #3979f640}
+.btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+.btn.inline{width:auto;margin-top:0}
+.note{color:var(--muted);font-size:11px;line-height:1.6;margin-top:14px}
+.hero{background:linear-gradient(115deg,#15243b,#101827 62%,#172344);border:1px solid #304361;border-radius:22px;padding:28px;margin-bottom:22px}
+.eyebrow{color:#80b7ff;font-size:11px;font-weight:700;letter-spacing:2px}
+.title{font-family:'Space Grotesk',sans-serif;font-size:clamp(26px,4vw,40px);font-weight:700;letter-spacing:-1.5px;margin:10px 0 8px}
+.lead{color:#a8bad4;font-size:14px;line-height:1.8;max-width:640px}
+.chip{display:inline-block;background:#1b3553;color:#9ccaff;border:1px solid #355578;padding:6px 11px;border-radius:30px;font-size:11px;margin:14px 6px 0 0}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.card{background:linear-gradient(145deg,#141f32,#0f1726);border:1px solid var(--border);border-radius:16px;padding:18px 20px}
+.card .k{color:#9aabc4;font-size:12px}.card .v{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:600;margin-top:6px}
+.tabs{display:flex;gap:6px;border-bottom:1px solid var(--border);margin-bottom:20px;flex-wrap:wrap}
+.tab{background:transparent;border:0;color:#9aabc4;font-weight:600;padding:10px 18px;border-radius:10px 10px 0 0}
+.tab.active{color:#fff;background:#14223a}
+.panel{background:linear-gradient(145deg,#121d2d,#0e1624);border:1px solid #26354a;border-radius:17px;padding:22px;margin-bottom:18px}
+.section{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:600;margin-bottom:6px}
+.muted{color:#92a3bd;font-size:13px;line-height:1.7}
+.grid2{display:grid;grid-template-columns:1fr 1.4fr;gap:20px}
+.ringwrap{display:flex;align-items:center;gap:24px;margin-top:14px}
+.pill{display:inline-block;padding:6px 12px;border-radius:7px;font-size:11px;font-weight:700;letter-spacing:1px}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.alert{border-radius:12px;padding:14px 16px;font-size:14px;margin-top:10px;border:1px solid}
+.a-red{background:#421f2b;border-color:#7a3345;color:#ffd0d8}
+.a-amber{background:#3d2e19;border-color:#7a5a2a;color:#ffe6bd}
+.a-green{background:#12382f;border-color:#256b57;color:#c4f5e2}
+.a-blue{background:#14223a;border-color:#2e4468;color:#cfe0ff}
+.ai{background:linear-gradient(145deg,#131f35,#0f1829);border:1px solid #2e4468;border-left:4px solid #6559ef;border-radius:14px;padding:20px 22px;white-space:pre-wrap;line-height:1.7;color:#dbe7fa;margin-top:14px}
+.ai code{background:#1b2a44;padding:1px 6px;border-radius:5px}
+pre.json{background:#0b1220;border:1px solid var(--border);border-radius:12px;padding:14px;overflow:auto;color:#cfe0ff;font-size:12px;margin:12px 0 0}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+th{color:#9aabc4;font-weight:600}
+.tw{overflow-x:auto}
+.hidden{display:none}
+footer{text-align:center;color:#64748b;font-size:11px;padding:24px 0 0}
+@media(max-width:900px){.layout{grid-template-columns:1fr}aside{position:static;height:auto;border-right:0;border-bottom:1px solid var(--border)}main{padding:20px 16px}.cards{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside>
+  <div class="brand">🛡️ DeployGuard</div>
+  <div class="sub">DEPLOYMENT COMMAND CENTER</div>
+  <span id="badge" class="badge bad"><span class="dot"></span><span id="badgeText">Checking…</span></span>
+  <hr>
+  <h3 style="font-size:16px">Control Panel</h3>
+  <div class="muted">Configure the deployment signals to analyze.</div>
+  <label for="scenario">Quick scenario</label>
+  <select id="scenario">
+    <option>Custom metrics</option><option>Healthy release</option><option>Slow application</option>
+    <option>Error spike</option><option>Unhealthy deployment</option>
+  </select>
+  <label for="er">Error rate (%) <span class="rv" id="erv">2.0</span></label>
+  <input type="range" id="er" min="0" max="100" step="0.5" value="2">
+  <label for="lat">Response latency (ms)</label>
+  <input type="number" id="lat" min="0" max="120000" step="50" value="150">
+  <label for="hs">Application health</label>
+  <select id="hs"><option value="healthy">healthy</option><option value="unhealthy">unhealthy</option></select>
+  <button class="btn" id="analyze">⚡ Analyze Deployment</button>
+  <div class="note">Risk score: deterministic rules. Explanation: AI (advisory). Sidebar values are manual input; the CloudWatch tab fetches live ones.</div>
+</aside>
+<main>
+  <section class="hero">
+    <div class="eyebrow">INFRASTRUCTURE INTELLIGENCE / 01</div>
+    <div class="title">Deployment Command Center</div>
+    <div class="lead">Understand deployment health, identify release risks, and make safer recovery decisions from one workspace.</div>
+    <span class="chip">● RISK ENGINE</span><span class="chip">AI DIAGNOSIS</span><span class="chip">FASTAPI + DOCKER</span><span class="chip">ELASTIC BEANSTALK</span>
+  </section>
+  <div class="cards">
+    <div class="card"><div class="k">API Status</div><div class="v" id="c1">…</div></div>
+    <div class="card"><div class="k">Risk Engine</div><div class="v" id="c2">…</div></div>
+    <div class="card"><div class="k">AI Diagnosis</div><div class="v" id="c3">…</div></div>
+    <div class="card"><div class="k">Monitoring Mode</div><div class="v" id="c4">MANUAL</div></div>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-tab="risk">📊 Risk Analysis</button>
+    <button class="tab" data-tab="ai">🤖 AI Diagnosis</button>
+    <button class="tab" data-tab="cw">☁️ CloudWatch</button>
+    <button class="tab" data-tab="hist">🕘 History</button>
+  </div>
+
+  <div id="tab-risk">
+    <div id="riskEmpty" class="panel"><div class="section">Your next deployment insight starts here.</div>
+      <div class="muted">Pick a scenario in the control panel and click <b>Analyze Deployment</b>.</div></div>
+    <div id="riskErr" class="alert a-red hidden"></div>
+    <div id="riskBody" class="hidden">
+      <div class="grid2">
+        <div class="panel"><div class="muted">DEPLOYMENT RISK SCORE</div>
+          <div class="ringwrap">
+            <svg width="130" height="130" viewBox="0 0 130 130">
+              <circle cx="65" cy="65" r="52" fill="none" stroke="#253247" stroke-width="11"/>
+              <circle id="ring" cx="65" cy="65" r="52" fill="none" stroke="#64a8ff" stroke-width="11" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7" transform="rotate(-90 65 65)"/>
+              <text id="ringNum" x="65" y="74" text-anchor="middle" fill="#f2f7ff" font-size="32" font-weight="700" font-family="Space Grotesk, sans-serif">0</text>
+            </svg>
+            <div><span id="pill" class="pill">LOW RISK</span><div id="levelNote" class="muted" style="margin-top:12px"></div></div>
+          </div>
+        </div>
+        <div class="panel"><div class="section">Signal Breakdown</div><div class="muted">Metrics submitted to the risk engine</div>
+          <div class="metrics">
+            <div class="card"><div class="k">Error Rate</div><div class="v" id="mEr"></div></div>
+            <div class="card"><div class="k">Latency</div><div class="v" id="mLat"></div></div>
+            <div class="card"><div class="k">Health Status</div><div class="v" id="mHs"></div></div>
+            <div class="card"><div class="k">Risk Level</div><div class="v" id="mLv"></div></div>
+          </div>
+        </div>
+      </div>
+      <h3 style="margin:8px 0">Recommended Action</h3>
+      <div id="rec" class="alert"></div>
+    </div>
+  </div>
+
+  <div id="tab-ai" class="hidden">
+    <div class="panel">
+      <div class="section">AI Diagnosis</div>
+      <div class="muted" id="aiCtx">Run <b>Analyze Deployment</b> first. The AI explains the metrics you analyzed.</div>
+      <div style="margin-top:14px"><button class="btn inline" id="aiBtn" disabled>🤖 Run AI Diagnosis</button></div>
+      <div id="aiErr" class="alert a-red hidden"></div>
+      <div id="aiOut" class="ai hidden"></div>
+      <div id="aiCap" class="muted hidden" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <div id="tab-cw" class="hidden">
+    <div class="panel">
+      <div class="section">Live metrics (AWS CloudWatch)</div>
+      <div class="muted">Needs an Elastic Beanstalk environment with traffic and CloudWatch read permission on its instance role.</div>
+      <div style="margin-top:14px"><button class="btn inline" id="cwBtn">Fetch live metrics</button>
+        <button class="btn inline hidden" id="cwAnalyze" style="margin-left:8px">Analyze these live metrics</button></div>
+      <div id="cwErr" class="alert a-red hidden"></div>
+      <pre id="cwOut" class="json hidden"></pre>
+    </div>
+    <div class="panel"><div class="section">Rollback</div>
+      <div class="muted">Production rollback runs from GitHub: <b>Actions → Rollback → Run workflow</b>. It lists the available versions first, then redeploys the one you choose. This page never changes your environment.</div></div>
+  </div>
+
+  <div id="tab-hist" class="hidden">
+    <div class="panel"><div class="section">Analysis history</div>
+      <div class="muted" id="histCap">Loading…</div>
+      <div class="tw" style="margin-top:12px"><table id="histTable" class="hidden"><thead><tr>
+        <th>Time (UTC)</th><th>Score</th><th>Level</th><th>Error %</th><th>Latency ms</th><th>Health</th></tr></thead><tbody id="histBody"></tbody></table></div>
+    </div>
+  </div>
+
+  <footer>DEPLOYGUARD • HACKATHON MVP • AI DIAGNOSIS IS ADVISORY • ROLLBACK RUNS FROM GITHUB ACTIONS, NOT THIS PAGE</footer>
+</main>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const PRESETS = {
+  "Healthy release": [0.5, 120, "healthy"], "Slow application": [2.0, 850, "healthy"],
+  "Error spike": [12.0, 300, "healthy"], "Unhealthy deployment": [15.0, 1200, "unhealthy"],
+  "Custom metrics": [2.0, 150, "healthy"]
+};
+const LEVELS = {
+  LOW: { color: "#36d399", bg: "#12382f", cls: "a-green", note: "Signals are within the low-risk range." },
+  MEDIUM: { color: "#ffc46b", bg: "#3d2e19", cls: "a-amber", note: "Review signals and continue monitoring." },
+  HIGH: { color: "#ff647c", bg: "#421f2b", cls: "a-red", note: "Immediate investigation recommended." }
+};
+let last = null;
+let live = null;
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function fmt(text) {
+  return esc(text).replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/`([^`]+)`/g, "<code>$1</code>");
+}
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  let body = null;
+  try { body = await r.json(); } catch (e) { body = null; }
+  if (!r.ok) {
+    const d = body && body.detail ? (typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail)) : r.statusText;
+    throw new Error("(" + r.status + ") " + d);
+  }
+  return body;
+}
+function show(el, on) { el.classList.toggle("hidden", !on); }
+function err(el, msg) { el.textContent = msg; show(el, !!msg); }
+
+async function checkHealth() {
+  let online = false;
+  try { await api("/health"); online = true; } catch (e) { online = false; }
+  $("badge").className = "badge " + (online ? "ok" : "bad");
+  $("badgeText").textContent = online ? "Backend online" : "Backend offline";
+  $("c1").textContent = online ? "ONLINE" : "OFFLINE";
+  $("c2").textContent = online ? "READY" : "UNAVAILABLE";
+  $("c3").textContent = online ? "READY" : "UNAVAILABLE";
+}
+
+function applyPreset() {
+  const p = PRESETS[$("scenario").value];
+  $("er").value = p[0]; $("erv").textContent = Number(p[0]).toFixed(1);
+  $("lat").value = p[1]; $("hs").value = p[2];
+}
+
+function render(result) {
+  const lv = LEVELS[result.risk_level] || LEVELS.LOW;
+  const score = Number(result.risk_score) || 0;
+  const m = result.metrics || {};
+  $("ring").setAttribute("stroke", lv.color);
+  $("ring").setAttribute("stroke-dashoffset", String(326.7 * (1 - Math.min(Math.max(score, 0), 100) / 100)));
+  $("ringNum").textContent = String(score);
+  $("pill").textContent = String(result.risk_level) + " RISK";
+  $("pill").style.color = lv.color; $("pill").style.background = lv.bg;
+  $("levelNote").textContent = lv.note;
+  $("mEr").textContent = Number(m.error_rate_percent) + "%";
+  $("mLat").textContent = Number(m.latency_ms) + " ms";
+  $("mHs").textContent = String(m.health_status).toUpperCase();
+  $("mLv").textContent = String(result.risk_level);
+  $("rec").className = "alert " + lv.cls;
+  $("rec").textContent = result.recommendation;
+  show($("riskEmpty"), false); show($("riskBody"), true);
+}
+
+async function analyzeWith(er, lat, hs) {
+  err($("riskErr"), "");
+  try {
+    const q = new URLSearchParams({ error_rate: er, latency_ms: lat, health_status: hs });
+    last = await api("/analyze?" + q.toString());
+    render(last);
+    show($("aiOut"), false); show($("aiCap"), false); err($("aiErr"), "");
+    $("aiBtn").disabled = false;
+    const m = last.metrics;
+    $("aiCtx").textContent = "Diagnosing: error rate " + m.error_rate_percent + "% · latency " + m.latency_ms + " ms · health " + m.health_status + " · risk " + last.risk_level;
+    return true;
+  } catch (e) {
+    err($("riskErr"), "Analysis failed: " + e.message);
+    show($("riskEmpty"), false);
+    return false;
+  }
+}
+
+function openTab(name) {
+  document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
+  ["risk", "ai", "cw", "hist"].forEach((t) => show($("tab-" + t), t === name));
+  if (name === "hist") loadHistory();
+}
+
+async function loadHistory() {
+  try {
+    const data = await api("/history");
+    const recs = Array.isArray(data) ? data : (data.history || []);
+    if (!recs.length) { $("histCap").textContent = "No analyses saved yet."; show($("histTable"), false); return; }
+    const rows = recs.slice(-20).reverse().map((r) => {
+      const m = r.metrics || {};
+      return "<tr><td>" + esc(r.timestamp || "") + "</td><td>" + esc(r.risk_score) + "</td><td>" + esc(r.risk_level) +
+        "</td><td>" + esc(m.error_rate_percent) + "</td><td>" + esc(m.latency_ms) + "</td><td>" + esc(m.health_status) + "</td></tr>";
+    });
+    $("histBody").innerHTML = rows.join("");
+    $("histCap").textContent = "Latest " + Math.min(recs.length, 20) + " of " + recs.length + " saved analyses. Stored on the server (development storage).";
+    show($("histTable"), true);
+  } catch (e) {
+    $("histCap").textContent = "Could not load history: " + e.message;
+    show($("histTable"), false);
+  }
+}
+
+$("scenario").addEventListener("change", applyPreset);
+$("er").addEventListener("input", () => { $("erv").textContent = Number($("er").value).toFixed(1); });
+$("analyze").addEventListener("click", async () => {
+  await analyzeWith($("er").value, $("lat").value, $("hs").value);
+  openTab("risk");
+});
+document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => openTab(b.dataset.tab)));
+
+$("aiBtn").addEventListener("click", async () => {
+  if (!last) return;
+  const m = last.metrics;
+  $("aiBtn").disabled = true; $("aiBtn").textContent = "Asking the model…";
+  err($("aiErr"), ""); show($("aiOut"), false); show($("aiCap"), false);
+  try {
+    const d = await api("/diagnose", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ error_rate: m.error_rate_percent, latency_ms: m.latency_ms, health_status: m.health_status })
+    });
+    $("aiOut").innerHTML = fmt(d.diagnosis); show($("aiOut"), true);
+    $("aiCap").textContent = "Model: " + (d.model || "unknown") + " · Advisory only. No rollback has been performed.";
+    show($("aiCap"), true);
+  } catch (e) {
+    err($("aiErr"), "Diagnosis failed " + e.message);
+  } finally {
+    $("aiBtn").disabled = false; $("aiBtn").textContent = "🤖 Run AI Diagnosis";
+  }
+});
+
+$("cwBtn").addEventListener("click", async () => {
+  err($("cwErr"), ""); show($("cwOut"), false); show($("cwAnalyze"), false); live = null;
+  $("cwBtn").disabled = true;
+  try {
+    live = await api("/metrics/live");
+    $("cwOut").textContent = JSON.stringify(live, null, 2); show($("cwOut"), true);
+    if (live.error_rate !== null && live.latency_ms !== null && live.health_status) show($("cwAnalyze"), true);
+    else err($("cwErr"), "Some metrics have no datapoints yet, so analysis is disabled.");
+  } catch (e) {
+    err($("cwErr"), e.message);
+  } finally { $("cwBtn").disabled = false; }
+});
+$("cwAnalyze").addEventListener("click", async () => {
+  if (!live) return;
+  if (await analyzeWith(live.error_rate, live.latency_ms, live.health_status)) openTab("risk");
+});
+
+applyPreset();
+checkHealth();
+setInterval(checkHealth, 15000);
+</script>
+</body>
+</html>
