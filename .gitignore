@@ -6,3 +6,8 @@ __pycache__/
 app/deployment_history.json
 *.csv
 .elasticbeanstalk/
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log

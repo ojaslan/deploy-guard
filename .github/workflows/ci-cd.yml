@@ -44,6 +44,18 @@ jobs:
           curl -fs localhost:8000/ | grep -q "DeployGuard" || { echo "dashboard page missing"; docker logs dg; exit 1; }
           docker rm -f dg
 
+  terraform-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+      - name: Format check (warning only)
+        run: terraform -chdir=terraform fmt -check -diff || echo "::warning::run terraform fmt in terraform/"
+      - run: terraform -chdir=terraform init -backend=false
+      - run: terraform -chdir=terraform validate
+
   # Runs only after the repo variable AWS_ROLE_ARN is set (see runbook).
   # Uses the GitHub Environment "production" (add required reviewers there for an approval gate).
   deploy:

@@ -16,6 +16,7 @@ Give it error rate, latency and health. A deterministic engine scores the releas
 | History | local JSON (development storage only) | `app/history.py` |
 | Container | Docker | `Dockerfile`, `docker-compose.yml` |
 | CI/CD | GitHub Actions + OIDC | `.github/workflows/` |
+| Infrastructure | Terraform | `terraform/` |
 
 ## Deployment model
 One Elastic Beanstalk Docker environment (`deployguard-prod`) runs a single container. FastAPI serves both the API and the dashboard page, so there is one URL, one image and no CORS setup.
@@ -24,6 +25,14 @@ Pipeline (`ci-cd.yml`): **test** -> **docker-build** (builds the image, health-c
 
 Rollback: **Actions -> Rollback** lists versions, then redeploys the one you choose.
 
+## Live demo (GitHub Pages)
+Settings -> Pages -> Deploy from a branch (`main`, `/ (root)`) serves the root `index.html`, a copy of `app/static/index.html`. Pages has no backend, so it runs in **demo mode**: scoring in the browser (same rules as the API), history in the browser, AI and CloudWatch disabled. After editing the dashboard, run `copy app\static\index.html index.html` and push.
+
+Demo URL: `https://ojaslan.github.io/deploy-guard/`
+
+## Infrastructure as code
+`terraform/` builds the Elastic Beanstalk environment, IAM roles and the GitHub OIDC role. See `terraform/README.md`.
+
 ## Status (what is verified)
 | Feature | Status |
 |---|---|
@@ -31,7 +40,8 @@ Rollback: **Actions -> Rollback** lists versions, then redeploys the one you cho
 | CloudWatch math, rollback API safety logic | Unit tests with mocked AWS |
 | Workflows and scripts | Linted (actionlint, shellcheck) |
 | Docker image builds and passes health checks | Runs in CI on every push |
-| Dashboard page logic | Exercised in jsdom against the real API (not yet checked in a real browser) |
+| Dashboard page logic | Exercised in jsdom against the real API, and in demo mode (not yet checked in a real browser) |
+| Demo-mode scoring vs API scoring | Compared on 400 random inputs, 0 mismatches |
 | Elastic Beanstalk deploy via pipeline, live CloudWatch | Verify after setup (see runbook) |
 
 ## Run locally

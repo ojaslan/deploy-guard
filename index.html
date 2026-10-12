@@ -92,6 +92,7 @@ footer{text-align:center;color:#64748b;font-size:11px;padding:24px 0 0}
   <div class="note">Risk score: deterministic rules. Explanation: AI (advisory). Sidebar values are manual input; the CloudWatch tab fetches live ones.</div>
 </aside>
 <main>
+  <div id="demoBanner" class="alert a-blue hidden" style="margin:0 0 18px"><b>Demo mode.</b> This page runs entirely in your browser. The risk score uses the same rules as the API. AI diagnosis and CloudWatch need the live backend, and history is stored only in this browser.</div>
   <section class="hero">
     <div class="eyebrow">INFRASTRUCTURE INTELLIGENCE / 01</div>
     <div class="title">Deployment Command Center</div>
@@ -193,6 +194,36 @@ const LEVELS = {
 let last = null;
 let live = null;
 
+// Demo mode: GitHub Pages (no backend) or ?demo=1. Same scoring rules as app/risk.py.
+const DEMO = location.hostname.endsWith("github.io") || new URLSearchParams(location.search).has("demo");
+function riskOf(er, lat, hs) {
+  const score = Math.round(Math.min(Math.min(er * 4, 40) + Math.min(Math.max((lat - 200) / 20, 0), 30) + (hs === "unhealthy" ? 30 : 0), 100) * 10) / 10;
+  const level = score >= 70 ? "HIGH" : score >= 30 ? "MEDIUM" : "LOW";
+  const rec = { HIGH: "High risk. Investigate immediately and consider rolling back to the last stable version.",
+    MEDIUM: "Moderate risk. Review error and latency trends and keep monitoring before promoting.",
+    LOW: "Low risk. Signals look normal. Continue monitoring." }[level];
+  return { risk_score: score, risk_level: level, recommendation: rec };
+}
+function histLoad() { try { return JSON.parse(localStorage.getItem("dg_history") || "[]"); } catch (e) { return []; } }
+function histSave(rec) { try { localStorage.setItem("dg_history", JSON.stringify(histLoad().concat([rec]).slice(-100))); } catch (e) { /* storage blocked */ } }
+async function demoApi(path) {
+  const url = new URL(path, location.origin);
+  if (url.pathname === "/health") return { status: "ok", mode: "demo" };
+  if (url.pathname === "/analyze") {
+    const er = Number(url.searchParams.get("error_rate")), lat = Number(url.searchParams.get("latency_ms"));
+    const hs = url.searchParams.get("health_status") || "healthy";
+    if (!(er >= 0 && er <= 100) || !(lat >= 0) || (hs !== "healthy" && hs !== "unhealthy")) throw new Error("(422) Invalid input");
+    const res = riskOf(er, lat, hs);
+    res.metrics = { error_rate_percent: er, latency_ms: lat, health_status: hs };
+    histSave(Object.assign({ timestamp: new Date().toISOString().slice(0, 19) }, res));
+    return res;
+  }
+  if (url.pathname === "/history") return histLoad();
+  if (url.pathname === "/diagnose") throw new Error("(demo) AI diagnosis needs the live backend.");
+  if (url.pathname === "/metrics/live") throw new Error("(demo) Live CloudWatch metrics need the live backend.");
+  throw new Error("(404) Not available in demo mode");
+}
+
 function esc(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
@@ -200,6 +231,7 @@ function fmt(text) {
   return esc(text).replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/`([^`]+)`/g, "<code>$1</code>");
 }
 async function api(path, opts) {
+  if (DEMO) return demoApi(path);
   const r = await fetch(path, opts);
   let body = null;
   try { body = await r.json(); } catch (e) { body = null; }
@@ -216,10 +248,10 @@ async function checkHealth() {
   let online = false;
   try { await api("/health"); online = true; } catch (e) { online = false; }
   $("badge").className = "badge " + (online ? "ok" : "bad");
-  $("badgeText").textContent = online ? "Backend online" : "Backend offline";
-  $("c1").textContent = online ? "ONLINE" : "OFFLINE";
+  $("badgeText").textContent = DEMO ? "Demo mode" : (online ? "Backend online" : "Backend offline");
+  $("c1").textContent = DEMO ? "DEMO" : (online ? "ONLINE" : "OFFLINE");
   $("c2").textContent = online ? "READY" : "UNAVAILABLE";
-  $("c3").textContent = online ? "READY" : "UNAVAILABLE";
+  $("c3").textContent = DEMO ? "BACKEND ONLY" : (online ? "READY" : "UNAVAILABLE");
 }
 
 function applyPreset() {
@@ -282,7 +314,7 @@ async function loadHistory() {
         "</td><td>" + esc(m.error_rate_percent) + "</td><td>" + esc(m.latency_ms) + "</td><td>" + esc(m.health_status) + "</td></tr>";
     });
     $("histBody").innerHTML = rows.join("");
-    $("histCap").textContent = "Latest " + Math.min(recs.length, 20) + " of " + recs.length + " saved analyses. Stored on the server (development storage).";
+    $("histCap").textContent = "Latest " + Math.min(recs.length, 20) + " of " + recs.length + " saved analyses. " + (DEMO ? "Stored in this browser only." : "Stored on the server (development storage).");
     show($("histTable"), true);
   } catch (e) {
     $("histCap").textContent = "Could not load history: " + e.message;
@@ -335,6 +367,7 @@ $("cwAnalyze").addEventListener("click", async () => {
   if (await analyzeWith(live.error_rate, live.latency_ms, live.health_status)) openTab("risk");
 });
 
+if (DEMO) { show($("demoBanner"), true); $("c4").textContent = "DEMO"; }
 applyPreset();
 checkHealth();
 setInterval(checkHealth, 15000);
