@@ -56,8 +56,7 @@ jobs:
       - run: terraform -chdir=terraform init -backend=false
       - run: terraform -chdir=terraform validate
 
-  # Runs only after the repo variable AWS_ROLE_ARN is set (see runbook).
-  # Uses the GitHub Environment "production" (add required reviewers there for an approval gate).
+  # Runs only after the repo variable AWS_ROLE_ARN is set.
   deploy:
     runs-on: ubuntu-latest
     needs: [test, docker-build]
@@ -68,6 +67,10 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
+      - name: Show OIDC claims (debug)
+        run: |
+          TOKEN=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | python3 -c "import sys,json; print(json.load(sys.stdin)['value'])")
+          echo "$TOKEN" | python3 -c "import sys,json,base64; p=sys.stdin.read().strip().split('.')[1]; p+='='*(-len(p)%4); d=json.loads(base64.urlsafe_b64decode(p)); print({k: d.get(k) for k in ('sub','aud','repository','environment')})"
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
