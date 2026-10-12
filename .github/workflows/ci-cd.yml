@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  AWS_REGION: ap-south-1
+  AWS_REGION: eu-north-1
   EB_APP: deployguard
   EB_ENV: deployguard-prod
 
