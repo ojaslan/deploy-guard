@@ -11,3 +11,5 @@ app/deployment_history.json
 *.tfstate.*
 *.tfvars
 crash.log
+app/version.txt
+.ruff_cache/

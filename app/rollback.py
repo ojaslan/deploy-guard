@@ -16,6 +16,8 @@ from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 
+from app.awsutil import region as aws_region
+
 
 def require_admin(x_admin_token: str = Header(default="")):
     expected = os.getenv("DEPLOYGUARD_ADMIN_TOKEN", "").strip()
@@ -29,11 +31,10 @@ router = APIRouter(prefix="/rollback", tags=["rollback"], dependencies=[Depends(
 
 
 def _eb():
-    region = os.getenv("AWS_REGION", "").strip()
     env = os.getenv("EB_ENVIRONMENT_NAME", "").strip()
-    if not region or not env:
-        raise HTTPException(500, "Set AWS_REGION and EB_ENVIRONMENT_NAME.")
-    return boto3.client("elasticbeanstalk", region_name=region), env
+    if not env:
+        raise HTTPException(500, "Set EB_ENVIRONMENT_NAME.")
+    return boto3.client("elasticbeanstalk", region_name=aws_region()), env
 
 
 def _wrap(e: Exception):

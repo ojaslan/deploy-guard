@@ -97,7 +97,7 @@ footer{text-align:center;color:#64748b;font-size:11px;padding:24px 0 0}
     <div class="eyebrow">INFRASTRUCTURE INTELLIGENCE / 01</div>
     <div class="title">Deployment Command Center</div>
     <div class="lead">Understand deployment health, identify release risks, and make safer recovery decisions from one workspace.</div>
-    <span class="chip">● RISK ENGINE</span><span class="chip">AI DIAGNOSIS</span><span class="chip">FASTAPI + DOCKER</span><span class="chip">ELASTIC BEANSTALK</span>
+    <span class="chip">● RISK ENGINE</span><span class="chip">AI DIAGNOSIS</span><span class="chip">FASTAPI + DOCKER</span><span class="chip">ELASTIC BEANSTALK</span><span class="chip" id="verChip">BUILD …</span>
   </section>
   <div class="cards">
     <div class="card"><div class="k">API Status</div><div class="v" id="c1">…</div></div>
@@ -109,7 +109,8 @@ footer{text-align:center;color:#64748b;font-size:11px;padding:24px 0 0}
   <div class="tabs" id="tabs">
     <button class="tab active" data-tab="risk">📊 Risk Analysis</button>
     <button class="tab" data-tab="ai">🤖 AI Diagnosis</button>
-    <button class="tab" data-tab="cw">☁️ CloudWatch</button>
+    <button class="tab" data-tab="cw">📡 Live Monitor</button>
+    <button class="tab" data-tab="lab">🧪 Incident Lab</button>
     <button class="tab" data-tab="hist">🕘 History</button>
   </div>
 
@@ -154,9 +155,40 @@ footer{text-align:center;color:#64748b;font-size:11px;padding:24px 0 0}
     </div>
   </div>
 
+  <div id="tab-lab" class="hidden">
+    <div class="panel">
+      <div class="section">Incident Lab</div>
+      <div class="muted">Breaks a demo route on this very service, measures the real damage with the live telemetry, scores it, asks the AI and shows the rollback decision. The fault reverts by itself after 2 minutes.</div>
+      <div style="margin-top:14px"><button class="btn inline" id="labRun">▶ Run full incident demo</button>
+        <button class="btn inline" id="labReset" style="margin-left:10px;background:#1b3553">Reset to healthy</button></div>
+      <ol id="labSteps" class="muted" style="line-height:2;margin-top:14px;padding-left:20px"></ol>
+      <div id="labErr" class="alert a-red hidden"></div>
+      <div id="labResult" class="hidden">
+        <div id="labSummary" class="alert"></div>
+        <div id="labVerdict" class="pill" style="margin-top:14px"></div>
+        <div id="labAI" class="ai hidden"></div>
+        <div id="labRollback" class="alert a-amber hidden" style="margin-top:14px"></div>
+      </div>
+    </div>
+  </div>
+
   <div id="tab-cw" class="hidden">
     <div class="panel">
-      <div class="section">Live metrics (AWS CloudWatch)</div>
+      <div class="section">App telemetry (this service)</div>
+      <div class="muted">Real request numbers measured by the service itself over the last 10 minutes. Health checks are not counted. Works without any AWS permissions.</div>
+      <div style="margin-top:14px"><button class="btn inline" id="tmBtn">Refresh</button>
+        <label style="display:inline-flex;gap:8px;align-items:center;margin:0 0 0 14px"><input type="checkbox" id="tmAuto"> Auto-refresh (10s)</label>
+        <button class="btn inline hidden" id="tmAnalyze" style="margin-left:14px">Analyze these metrics</button></div>
+      <div id="tmErr" class="alert a-amber hidden"></div>
+      <div id="tmGrid" class="metrics hidden" style="grid-template-columns:repeat(4,1fr)">
+        <div class="card"><div class="k">Requests</div><div class="v" id="tmReq"></div></div>
+        <div class="card"><div class="k">Error rate (5xx)</div><div class="v" id="tmEr"></div></div>
+        <div class="card"><div class="k">Latency p90</div><div class="v" id="tmLat"></div></div>
+        <div class="card"><div class="k">Health</div><div class="v" id="tmHs"></div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="section">AWS CloudWatch (optional)</div>
       <div class="muted">Needs an Elastic Beanstalk environment with traffic and CloudWatch read permission on its instance role.</div>
       <div style="margin-top:14px"><button class="btn inline" id="cwBtn">Fetch live metrics</button>
         <button class="btn inline hidden" id="cwAnalyze" style="margin-left:8px">Analyze these live metrics</button></div>
@@ -219,6 +251,10 @@ async function demoApi(path) {
     return res;
   }
   if (url.pathname === "/history") return histLoad();
+  if (url.pathname === "/version") return { version: "demo" };
+  if (url.pathname.startsWith("/demo/")) throw new Error("(demo) The Incident Lab needs the live backend.");
+  if (url.pathname === "/config") return { repo: "ojaslan/deploy-guard" };
+  if (url.pathname === "/metrics/self") throw new Error("(demo) Telemetry needs the live backend.");
   if (url.pathname === "/diagnose") throw new Error("(demo) AI diagnosis needs the live backend.");
   if (url.pathname === "/metrics/live") throw new Error("(demo) Live CloudWatch metrics need the live backend.");
   throw new Error("(404) Not available in demo mode");
@@ -299,7 +335,7 @@ async function analyzeWith(er, lat, hs) {
 
 function openTab(name) {
   document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
-  ["risk", "ai", "cw", "hist"].forEach((t) => show($("tab-" + t), t === name));
+  ["risk", "ai", "cw", "lab", "hist"].forEach((t) => show($("tab-" + t), t === name));
   if (name === "hist") loadHistory();
 }
 
@@ -350,6 +386,98 @@ $("aiBtn").addEventListener("click", async () => {
   }
 });
 
+let selfData = null;
+let selfTimer = null;
+async function loadSelf() {
+  err($("tmErr"), "");
+  try {
+    selfData = await api("/metrics/self?minutes=10");
+    $("tmReq").textContent = String(selfData.requests);
+    $("tmEr").textContent = selfData.error_rate === null ? "n/a" : selfData.error_rate + "%";
+    $("tmLat").textContent = selfData.latency_ms === null ? "n/a" : selfData.latency_ms + " ms";
+    $("tmHs").textContent = String(selfData.health_status).toUpperCase();
+    show($("tmGrid"), true);
+    const ok = selfData.error_rate !== null && selfData.latency_ms !== null;
+    show($("tmAnalyze"), ok);
+    if (!ok) err($("tmErr"), "No API traffic in the last 10 minutes. Click Analyze Deployment a few times, then refresh.");
+  } catch (e) {
+    err($("tmErr"), e.message);
+  }
+}
+$("tmBtn").addEventListener("click", loadSelf);
+$("tmAuto").addEventListener("change", () => {
+  clearInterval(selfTimer); selfTimer = null;
+  if ($("tmAuto").checked) { loadSelf(); selfTimer = setInterval(loadSelf, 10000); }
+});
+$("tmAnalyze").addEventListener("click", async () => {
+  if (!selfData) return;
+  if (await analyzeWith(selfData.error_rate, selfData.latency_ms, selfData.health_status)) openTab("risk");
+});
+
+const VERDICTS = { OK: ["#36d399", "#12382f"], INVESTIGATE: ["#ffc46b", "#3d2e19"], ROLLBACK: ["#ff647c", "#421f2b"] };
+const STEPS = ["Break the service (failing mode)", "Send 40 requests", "Read live telemetry", "Score the release", "Ask the AI", "Rollback decision"];
+function labMark(i, state, extra) {
+  const li = $("labStep" + i);
+  li.textContent = ({ run: "⏳ ", ok: "✅ ", fail: "⚠️ ", todo: "○ " }[state]) + STEPS[i] + (extra ? " — " + extra : "");
+}
+async function setMode(mode) { return api("/demo/mode", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode }) }); }
+
+async function runIncident() {
+  err($("labErr"), ""); show($("labResult"), false); show($("labAI"), false); show($("labRollback"), false);
+  $("labSteps").innerHTML = STEPS.map((_, i) => '<li id="labStep' + i + '"></li>').join("");
+  STEPS.forEach((_, i) => labMark(i, "todo"));
+  $("labRun").disabled = true;
+  try {
+    labMark(0, "run"); await setMode("failing"); labMark(0, "ok");
+    labMark(1, "run");
+    for (let b = 0; b < 5; b++) await Promise.all(Array.from({ length: 8 }, () => fetch("/demo/work").catch(() => null)));
+    labMark(1, "ok");
+    labMark(2, "run"); const t = await api("/metrics/self?minutes=10");
+    labMark(2, "ok", t.requests + " requests, " + t.error_rate + "% errors, p90 " + t.latency_ms + " ms");
+    labMark(3, "run");
+    if (!(await analyzeWith(t.error_rate, t.latency_ms, t.health_status))) throw new Error("Scoring failed");
+    labMark(3, "ok", last.risk_score + " (" + last.risk_level + ")");
+    const lv = LEVELS[last.risk_level] || LEVELS.LOW;
+    $("labSummary").className = "alert " + lv.cls;
+    $("labSummary").textContent = last.risk_level + " risk, score " + last.risk_score + ". " + last.recommendation;
+    show($("labResult"), true);
+    let verdict = last.risk_level === "HIGH" ? "ROLLBACK" : last.risk_level === "MEDIUM" ? "INVESTIGATE" : "OK";
+    labMark(4, "run");
+    try {
+      const d = await api("/diagnose", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ error_rate: t.error_rate, latency_ms: t.latency_ms, health_status: t.health_status, source: "app-telemetry", requests: t.requests }) });
+      $("labAI").innerHTML = fmt(d.diagnosis); show($("labAI"), true);
+      const m = /VERDICT:\s*(OK|INVESTIGATE|ROLLBACK)/i.exec(d.diagnosis);
+      if (m) verdict = m[1].toUpperCase();
+      labMark(4, "ok");
+    } catch (e) { labMark(4, "fail", e.message); }
+    const vc = VERDICTS[verdict];
+    $("labVerdict").textContent = "VERDICT: " + verdict; $("labVerdict").style.color = vc[0]; $("labVerdict").style.background = vc[1];
+    labMark(5, "run");
+    if (verdict === "ROLLBACK") {
+      let repo = "ojaslan/deploy-guard";
+      try { const c = await api("/config"); if (/^[\w.-]+\/[\w.-]+$/.test(c.repo)) repo = c.repo; } catch (e) { /* keep default */ }
+      $("labRollback").innerHTML = "<b>Rollback recommended.</b> Roll back safely from GitHub: ";
+      const a = document.createElement("a");
+      a.href = "https://github.com/" + repo + "/actions/workflows/rollback.yml"; a.target = "_blank"; a.rel = "noopener";
+      a.style.color = "#9ccaff"; a.textContent = "Actions → Rollback → Run workflow";
+      $("labRollback").appendChild(a);
+      $("labRollback").appendChild(document.createTextNode(". Afterwards the BUILD chip above shows the version that is live."));
+      show($("labRollback"), true);
+    }
+    labMark(5, "ok", verdict);
+  } catch (e) {
+    err($("labErr"), e.message);
+  } finally {
+    try { await setMode("healthy"); } catch (e) { /* ignore */ }
+    $("labRun").disabled = false;
+  }
+}
+$("labRun").addEventListener("click", runIncident);
+$("labReset").addEventListener("click", async () => {
+  try { await setMode("healthy"); err($("labErr"), ""); $("labSteps").innerHTML = "<li>Service reset to healthy.</li>"; } catch (e) { err($("labErr"), e.message); }
+});
+
 $("cwBtn").addEventListener("click", async () => {
   err($("cwErr"), ""); show($("cwOut"), false); show($("cwAnalyze"), false); live = null;
   $("cwBtn").disabled = true;
@@ -368,6 +496,7 @@ $("cwAnalyze").addEventListener("click", async () => {
 });
 
 if (DEMO) { show($("demoBanner"), true); $("c4").textContent = "DEMO"; }
+api("/version").then((v) => { $("verChip").textContent = "BUILD " + String(v.version).slice(0, 12).toUpperCase(); }).catch(() => {});
 applyPreset();
 checkHealth();
 setInterval(checkHealth, 15000);

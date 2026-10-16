@@ -8,7 +8,7 @@ terraform {
 
 variable "region" {
   type    = string
-  default = "ap-south-1"
+  default = "eu-north-1"
 }
 variable "app_name" {
   type    = string
@@ -74,6 +74,36 @@ resource "aws_iam_role_policy_attachment" "ec2_worker" {
 resource "aws_iam_role_policy_attachment" "ec2_cloudwatch_read" {
   role       = aws_iam_role.ec2.name
   policy_arn = "arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess"
+}
+
+# Persistent history table (PAY_PER_REQUEST) and the least-privilege access the app needs.
+resource "aws_dynamodb_table" "history" {
+  name         = "${var.app_name}-history"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "pk"
+  range_key    = "ts"
+
+  attribute {
+    name = "pk"
+    type = "S"
+  }
+  attribute {
+    name = "ts"
+    type = "S"
+  }
+}
+
+resource "aws_iam_role_policy" "ec2_history" {
+  name = "history-table"
+  role = aws_iam_role.ec2.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["dynamodb:PutItem", "dynamodb:Query"]
+      Resource = aws_dynamodb_table.history.arn
+    }]
+  })
 }
 
 resource "aws_iam_instance_profile" "ec2" {
@@ -173,6 +203,11 @@ resource "aws_elastic_beanstalk_environment" "env" {
   }
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "DG_DDB_TABLE"
+    value     = aws_dynamodb_table.history.name
+  }
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
     name      = "DG_DIAG_RATE_PER_MIN"
     value     = "10"
   }
@@ -209,7 +244,10 @@ resource "aws_iam_role" "github" {
       Action    = "sts:AssumeRoleWithWebIdentity"
       Condition = {
         StringEquals = { "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com" }
-        StringLike   = { "token.actions.githubusercontent.com:sub" = "repo:${var.github_repo}:*" }
+        StringLike = { "token.actions.githubusercontent.com:sub" = [
+          "repo:${var.github_repo}:*",
+          "repo:${split("/", var.github_repo)[0]}@*/${split("/", var.github_repo)[1]}@*:*",
+        ] }
       }
     }]
   })

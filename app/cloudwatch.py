@@ -1,11 +1,13 @@
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError
 from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException
+
+from app.awsutil import region as aws_region
 
 load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
 
@@ -15,7 +17,7 @@ NAMESPACE = "AWS/ElasticBeanstalk"
 
 def _query(env_name: str, region: str, minutes: int):
     cw = boto3.client("cloudwatch", region_name=region)
-    end = datetime.now(timezone.utc)
+    end = datetime.now(UTC)
     start = end - timedelta(minutes=minutes)
 
     def q(qid, metric, stat):
@@ -49,11 +51,10 @@ def _query(env_name: str, region: str, minutes: int):
 @router.get("/metrics/live")
 def live_metrics(minutes: int = 10):
     env_name = os.getenv("EB_ENVIRONMENT_NAME", "").strip()
-    region = os.getenv("AWS_REGION", "").strip()
-    if not env_name or not region:
-        raise HTTPException(500, "Set AWS_REGION and EB_ENVIRONMENT_NAME.")
+    if not env_name:
+        raise HTTPException(500, "Set EB_ENVIRONMENT_NAME.")
     try:
-        v = _query(env_name, region, minutes)
+        v = _query(env_name, aws_region(), minutes)
     except NoCredentialsError:
         raise HTTPException(500, "No AWS credentials found. Run: aws configure")
     except (ClientError, BotoCoreError) as e:

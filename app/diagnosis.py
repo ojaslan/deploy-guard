@@ -30,6 +30,8 @@ class DeploymentMetrics(BaseModel):
     error_rate: float
     latency_ms: float
     health_status: str
+    source: str | None = None
+    requests: int | None = None
 
 
 @router.post("/diagnose")
@@ -40,16 +42,22 @@ def diagnose(metrics: DeploymentMetrics):
     if not api_key:
         raise HTTPException(500, "GROQ_API_KEY is not set (.env locally, `eb setenv` on AWS).")
 
-    prompt = f"""You are a senior DevOps engineer. Analyze this deployment:
+    context = ""
+    if metrics.source:
+        context = f"\n- Data source: {metrics.source}"
+        if metrics.requests is not None:
+            context += f" ({metrics.requests} requests measured)"
+    prompt = f"""You are a senior SRE reviewing a deployment. Metrics:
 - Error rate: {metrics.error_rate}%
-- Latency: {metrics.latency_ms} ms
-- Health status: {metrics.health_status}
+- Latency (p90): {metrics.latency_ms} ms
+- Health status: {metrics.health_status}{context}
 
-Respond with:
-1. Risk explanation (2-3 sentences)
-2. Three investigation steps
-3. Whether rollback should be considered, and why
-Be concise."""
+Reply in this exact format and keep it short:
+VERDICT: <one of OK, INVESTIGATE, ROLLBACK>
+Evidence: 2 bullets citing the numbers above.
+Likely causes: 2 bullets.
+Next steps: 3 numbered steps.
+Rollback guidance: 1-2 sentences."""
     try:
         client = Groq(api_key=api_key)
         completion = client.chat.completions.create(
