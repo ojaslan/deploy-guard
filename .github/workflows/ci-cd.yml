@@ -46,8 +46,10 @@ jobs:
           docker run -d --name dg -p 8000:8000 deployguard
           for _ in $(seq 1 20); do curl -fs localhost:8000/health && break; sleep 2; done
           curl -fs localhost:8000/health || { docker logs dg; exit 1; }
-          curl -fs localhost:8000/ | grep -q "DeployGuard" || { echo "dashboard page missing"; docker logs dg; exit 1; }
-          curl -fs localhost:8000/version | grep -q version || { docker logs dg; exit 1; }
+          PAGE=$(curl -fs localhost:8000/ || true)
+          if ! grep -q "DeployGuard" <<<"$PAGE"; then echo "dashboard page missing"; docker logs dg; exit 1; fi
+          VER=$(curl -fs localhost:8000/version || true)
+          if ! grep -q version <<<"$VER"; then echo "/version missing"; docker logs dg; exit 1; fi
           docker rm -f dg
 
   terraform-validate:
