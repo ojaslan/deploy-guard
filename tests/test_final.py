@@ -93,4 +93,3 @@ def test_storage_failure_does_not_break_api(monkeypatch):
     monkeypatch.setenv("AWS_MAX_ATTEMPTS", "1")
     r = client.get("/analyze", params={"error_rate": 1, "latency_ms": 1})
     assert r.status_code == 200
-    

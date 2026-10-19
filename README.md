@@ -18,6 +18,9 @@ Give it error rate, latency and health. A deterministic engine scores the releas
 ## Stack
 FastAPI + a single HTML dashboard (served by FastAPI) in one Docker container on AWS Elastic Beanstalk. GitHub Actions: lint + tests -> Docker build and health check -> Terraform validate -> keyless (OIDC) deploy with smoke tests. Rollback is a separate workflow. Infrastructure as code in `terraform/`.
 
+## Durable incident response (Temporal)
+`temporal/` holds a Temporal workflow that reads live telemetry, scores it, gets an AI verdict, waits for a human approval, triggers the rollback workflow and verifies health. It survives worker crashes mid-wait. See `temporal/README.md`.
+
 ## Pipeline
 `.github/workflows/ci-cd.yml`: **test** (ruff + pytest), **docker-build**, **terraform-validate**, **deploy** (needs repo variable `AWS_ROLE_ARN`; uses the GitHub Environment `production`, where you can require approvals). Each deploy is an immutable version labelled with the commit, health-checked, then smoke-tested (`/health`, dashboard page, `/analyze`). **Rollback** workflow lists versions and redeploys the one you choose. Dependabot keeps actions, pip and Docker up to date.
 
@@ -27,6 +30,7 @@ FastAPI + a single HTML dashboard (served by FastAPI) in one Docker container on
 | Risk scoring, API, telemetry, Incident Lab, history (file and DynamoDB via moto), headers | 29 automated tests |
 | Lint, workflow and shell script checks | ruff, actionlint, shellcheck |
 | Docker image and container health | CI on every push |
+| Temporal workflow (5 workflow tests on a real Temporal server; end-to-end run with the real app; worker crash and resume) | verified by the author locally, not on AWS |
 | Dashboard (all tabs) | exercised in jsdom against the real API; real-browser check is yours |
 | Deploy via pipeline, DynamoDB on real AWS, Terraform apply, live CloudWatch data | verify using the guide (not tested by the author on a real account) |
 
